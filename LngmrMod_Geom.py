@@ -50,7 +50,7 @@ class Geom(object):
         
         domain: class Shape
         """
-        self.sequence.append(domain)
+        self.domain = domain
         self.mater_set.add(domain.mater)
         self.mater_dict.update({domain.mater:0})
         self.has_domain = True
@@ -217,8 +217,8 @@ class RctMod2D(Geom):
     def __str__(self):
         """Print out info."""
         res = '\nThis is a geometry for 2D Reactor Model'
-        res += f'\nwith domain {self.sequence[0].width} m'
-        res += f' x {self.sequence[0].height} m'
+        res += f'\nwith domain {self.domain.width} m'
+        res += f' x {self.domain.height} m'
         return super().__str__() + res
     
     def plot(self, figsize=(8, 8), dpi=300, ihoriz=1):
@@ -236,12 +236,11 @@ class RctMod2D(Geom):
                                      constrained_layout=True)
         
         ax = axes[0]
-        _domain = self.sequence[0]
-        temp_col = color_dict[self.mater_dict[_domain.mater]]
+        temp_col = color_dict[self.mater_dict[self.domain.mater]]
         ax.add_patch(
-            patch.Rectangle(_domain.bl, _domain.width, _domain.height,
+            patch.Rectangle(self.domain.bl, self.domain.width, self.domain.height,
                             facecolor='w'))
-        for shape in self.sequence[1:]:
+        for shape in self.sequence:
             
                 
             if shape.type == 'Rectangle':
@@ -253,16 +252,16 @@ class RctMod2D(Geom):
                 
         ax = axes[1]
         ax.add_patch(
-            patch.Rectangle(_domain.bl, _domain.width, _domain.height,
+            patch.Rectangle(self.domain.bl, self.domain.width, self.domain.height,
                             facecolor='purple'))
-        for shape in self.sequence[1:]:
+        for shape in self.sequence:
             if shape.type == 'Rectangle':
                 ax.add_patch(
                     patch.Rectangle(shape.bl, shape.width, shape.height,
                                     facecolor='w', edgecolor='w'))
         for ax in axes:
-            ax.set_xlim(_domain.bl[0], _domain.ur[0])
-            ax.set_ylim(_domain.bl[1], _domain.ur[1])
+            ax.set_xlim(self.domain.bl[0], self.domain.ur[0])
+            ax.set_ylim(self.domain.bl[1], self.domain.ur[1])
         fig.savefig(self.name, dpi=dpi)
         plt.close()
 
@@ -283,7 +282,7 @@ class RctMod1D(Geom):
     def __str__(self):
         """Print out info."""
         res = '\nThis is a geometry for 1D Reactor Model'
-        res += f'\nwith domain {self.sequence[0].domain} m'
+        res += f'\nwith domain {self.domain.domain} m'
         return super().__str__() + res
     
     def plot(self, figsize=(8, 8), dpi=300):
@@ -295,16 +294,12 @@ class RctMod1D(Geom):
         """
         fig, ax = plt.subplots(1, 1, figsize=figsize, dpi=dpi,
                                constrained_layout=True)
-        _domain = self.sequence[0]
-        ax.plot(_domain.domain, (0.0, 0.0), 'o-',
+        ax.plot(self.domain.domain, (0.0, 0.0), 'o-',
                 linewidth=5, color='purple', markersize=16)
-        for segment in self.sequence[1:]:
+        for segment in self.sequence:
             temp_col = color_dict[self.mater_dict[segment.mater]]
             ax.plot(segment.lr, (0.0, 0.0), 'o-',
                 linewidth=5, color=temp_col, markersize=16)
-        # for ax in axes:
-        #     ax.set_xlim(self.bl[0], self.bl[0] + self.domain[0])
-        #     ax.set_ylim(self.bl[1], self.bl[1] + self.domain[1])
         fig.savefig(self.name, dpi=dpi)
         plt.close()
 
