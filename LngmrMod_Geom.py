@@ -63,7 +63,7 @@ class Base(object):
                 pass
             else:
                 self.mater_set.add(shape.mater)
-                self.mater_dict.update({shape.mater:(len(self.mater)-1)})
+                self.mater_dict.update({shape.mater:(len(self.mater_set)-1)})
         else:
             res = 'Error: Domian is not created yet.'
             res += '\nRun self.create_domain() before self.add_shape()'
@@ -101,7 +101,7 @@ class Base(object):
         for shape in self.sequence:
             if shape.type == 'Rectangle':
                 
-                temp_col = color_dict[self.mater[shape.mater]]
+                temp_col = color_dict[self.mater_dict[shape.mater]]
                 ax.add_patch(
                     patch.Rectangle(shape.bl, shape.width, shape.height,
                                     facecolor=temp_col))
@@ -171,19 +171,55 @@ class Rectangle():
         return all(self.bl <= posn) and all(posn <= self.ur)
 
 if __name__ == '__main__':
-    geom2d = Geom2d(name='Geom2D_Test', is_cyl=False)
-    domain = Domain((-1.0, 0.0), (2.0, 4.0))
-    geom2d.add_domain(domain)
-    top = Rectangle('Metal', (-1.0, 3.5), (1.0, 4.0))
-    geom2d.add_shape(top)
-    bott = Rectangle('Metal', (-0.8, 0.0), (0.8, 0.2))
-    geom2d.add_shape(bott)
-    left = Rectangle('Metal', (-1.0, 0.0), (-0.9, 4.0))
-    geom2d.add_shape(left)
-    right = Rectangle('Metal', (0.9, 0.0), (1.0, 4.0))
-    geom2d.add_shape(right)
-    quartz = Rectangle('Quartz', (-0.9, 3.3), (0.9, 3.5))
-    geom2d.add_shape(quartz)
-    geom2d.plot(fname='geom2d.png')
-    print(geom2d)
-    print(geom2d.get_label(np.array([0., 0.])))
+    # build the geometry
+    ICP2d = RctMod2D(name='ICP2D', is_cyl=False)
+    #               (left, bottom), (width, height)
+    ICP2d.create_domain((-0.25, 0.0),    (0.5, 0.4))
+    
+    # Add metal wall to all boundaries
+    # In Metal, vector potential A = 0
+    #                        (left, bottom), (right, top)
+    top = Rectangle('Metal', (-0.25, 0.38), (0.25, 0.4))
+    ICP2d.add_shape(top)
+    bott = Rectangle('Metal', (-0.25, 0.0), (0.25, 0.02))
+    ICP2d.add_shape(bott)
+    # use -0.231 instead of -0.23 for mesh asymmetry
+    left = Rectangle('Metal', (-0.25, 0.0), (-0.231, 0.4)) 
+    ICP2d.add_shape(left)
+    right = Rectangle('Metal', (0.23, 0.0), (0.25, 4.0))
+    ICP2d.add_shape(right)
+    ped = Rectangle('Metal', (-0.20, 0.0), (0.20, 0.1))
+    ICP2d.add_shape(ped)
+    
+    
+    # Add quartz to separate coil area and plasma area
+    # Quartz conductivity = 1e-5 S/m
+    quartz = Rectangle('Quartz', (-0.23, 0.3), (0.23, 0.32))
+    ICP2d.add_shape(quartz)
+    
+    # Add air to occupy the top coil area to make it non-plasma
+    # Air concudctivity = 0.0 S/m
+    air = Rectangle('Air', (-0.23, 0.32), (0.23, 0.38))
+    ICP2d.add_shape(air)
+    
+    # Add coil within air and overwirte air
+    # coil 1, 2, 3: J = -J0*exp(iwt)
+    # coil 4, 5, 6: J = +J0*exp(iwt)
+    coil1 = Rectangle('Coil', (-0.20, 0.34), (-0.18, 0.36))
+    ICP2d.add_shape(coil1)
+    coil2 = Rectangle('Coil', (-0.14, 0.34), (-0.12, 0.36))
+    ICP2d.add_shape(coil2)
+    coil3 = Rectangle('Coil', (-0.08, 0.34), (-0.06, 0.36))
+    ICP2d.add_shape(coil3)
+    coil4 = Rectangle('Coil', (0.18, 0.34), (0.20, 0.36))
+    ICP2d.add_shape(coil4)
+    coil5 = Rectangle('Coil', (0.12, 0.34), (0.14, 0.36))
+    ICP2d.add_shape(coil5)
+    # use 0.081 instead of 0.08 for mesh asymmetry
+    coil6 = Rectangle('Coil', (0.06, 0.34), (0.081, 0.36))
+    ICP2d.add_shape(coil6)
+    
+    
+    
+    ICP2d.plot(figsize=(10, 4), ihoriz=1)
+    print(ICP2d)
