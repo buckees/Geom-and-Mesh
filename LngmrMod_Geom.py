@@ -114,14 +114,14 @@ class Domain2D(Shape):
         mater: 'Plasma', material of shape
         dim: 2, dimension of shape
         bl: float, (2, ) tuple, bottom left of domain
-        ur: float, (2, ) tuple, top right of domain
+        tr: float, (2, ) tuple, top right of domain
         domain: float, (2, ) tuple, width and height of domain
         type: str, var, type of domain
         """
         super().__init__(label='A', mater='Plasma', dim=2)
         self.bl = np.asarray(bl)
         self.domain = np.asarray(domain)
-        self.ur = self.bl + self.domain
+        self.tr = self.bl + self.domain
         self.width, self.height = self.domain
         self.type = 'Domain'
 
@@ -132,7 +132,7 @@ class Domain2D(Shape):
         posn: unit in m, (2, ) array, position as input
         boundaries are consindered as "Inside"
         """
-        return all(self.bl <= posn) and all(posn <= self.ur)
+        return all(self.bl <= posn) and all(posn <= self.tr)
 
 class Domain1D(Shape):
     """Define 1D domain."""
@@ -163,7 +163,7 @@ class Domain1D(Shape):
 class Rectangle(Shape):
     """Rectangle is a 2D basic shape."""
     
-    def __init__(self, mater, bottom_left, up_right):
+    def __init__(self, mater, bottom_left, top_right):
         """
         Init the Rectangle.
         
@@ -173,9 +173,9 @@ class Rectangle(Shape):
         """
         super().__init__(label='A', mater=mater, dim=2)
         self.bl = np.asarray(bottom_left)
-        self.ur = np.asarray(up_right)
-        self.width = self.ur[0] - self.bl[0]
-        self.height = self.ur[1] - self.bl[1]
+        self.tr = np.asarray(top_right)
+        self.width = self.tr[0] - self.bl[0]
+        self.height = self.tr[1] - self.bl[1]
         self.type = 'Rectangle'
 
     def __contains__(self, posn):
@@ -185,7 +185,7 @@ class Rectangle(Shape):
         posn: unit in m, (2, ) array, position as input
         boundaries are not consindered as "Inside"
         """
-        return all(self.bl <= posn) and all(posn <= self.ur)
+        return all(self.bl <= posn) and all(posn <= self.tr)
 
 class Interval(Shape):
     """Rectangle is a 1D basic shape."""
@@ -260,8 +260,8 @@ class RctMod2D(Geom):
                     patch.Rectangle(shape.bl, shape.width, shape.height,
                                     facecolor='w', edgecolor='w'))
         for ax in axes:
-            ax.set_xlim(self.domain.bl[0], self.domain.ur[0])
-            ax.set_ylim(self.domain.bl[1], self.domain.ur[1])
+            ax.set_xlim(self.domain.bl[0], self.domain.tr[0])
+            ax.set_ylim(self.domain.bl[1], self.domain.tr[1])
         fig.savefig(self.name, dpi=dpi)
         plt.close()
 
