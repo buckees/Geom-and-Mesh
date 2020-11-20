@@ -96,27 +96,35 @@ class RctMod2D(Base):
         else:
             fig, axes = plt.subplots(2, 1, figsize=figsize, dpi=dpi,
                                      constrained_layout=True)
-        ax = axes[0]
         
-        for shape in self.sequence:
+        ax = axes[0]
+        _domain = self.sequence[0]
+        temp_col = color_dict[self.mater_dict[_domain.mater]]
+        ax.add_patch(
+            patch.Rectangle(_domain.bl, _domain.width, _domain.height,
+                            facecolor='w'))
+        for shape in self.sequence[1:]:
+            
+                
             if shape.type == 'Rectangle':
                 
                 temp_col = color_dict[self.mater_dict[shape.mater]]
                 ax.add_patch(
                     patch.Rectangle(shape.bl, shape.width, shape.height,
                                     facecolor=temp_col))
+                
         ax = axes[1]
         ax.add_patch(
-            patch.Rectangle(self.bl, self.domain[0], self.domain[1], 
+            patch.Rectangle(_domain.bl, _domain.width, _domain.height,
                             facecolor='purple'))
-        for shape in self.sequence:
+        for shape in self.sequence[1:]:
             if shape.type == 'Rectangle':
                 ax.add_patch(
                     patch.Rectangle(shape.bl, shape.width, shape.height,
                                     facecolor='w', edgecolor='w'))
         for ax in axes:
-            ax.set_xlim(self.bl[0], self.bl[0] + self.domain[0])
-            ax.set_ylim(self.bl[1], self.bl[1] + self.domain[1])
+            ax.set_xlim(_domain.bl[0], _domain.ur[0])
+            ax.set_ylim(_domain.bl[1], _domain.ur[1])
         fig.savefig(self.name, dpi=dpi)
         plt.close()
 
@@ -146,7 +154,7 @@ class Shape():
         self.mater = mater
         self.dim = dim
 
-class Domain2d(Shape):
+class Domain2D(Shape):
     """Define 2D domain."""
     
     def __init__(self, bl=(0.0, 0.0), domain=(1.0, 1.0)):
@@ -177,7 +185,7 @@ class Domain2d(Shape):
         """
         return all(self.bl <= posn) and all(posn <= self.ur)
 
-class Domain1d(Shape):
+class Domain1D(Shape):
     """Define 1D domain."""
     
     def __init__(self, domain=(0.0, 1.0)):
@@ -214,7 +222,7 @@ class Rectangle(Shape):
         up_right: unit in m, (2, ) tuple, point position
         type: str, var, type of Shape
         """
-        super().__init__(label='A', mater, dim=2)
+        super().__init__(label='A', mater=mater, dim=2)
         self.bl = np.asarray(bottom_left)
         self.ur = np.asarray(up_right)
         self.width = self.ur[0] - self.bl[0]
@@ -240,7 +248,7 @@ class Interval(Shape):
         lr: unit in m, (2, ) tuple, defines the domain
         mater: str, var, label of Interval.
         """
-        super().__init__(label='A', mater, dim=1)
+        super().__init__(label='A', mater=mater, dim=1)
         self.lr = np.asarray(lr)
         self.length = self.lr[1] - self.lr[0]
 
@@ -257,7 +265,8 @@ if __name__ == '__main__':
     # build the geometry
     ICP2d = RctMod2D(name='ICP2D', is_cyl=False)
     #               (left, bottom), (width, height)
-    ICP2d.create_domain((-0.25, 0.0),    (0.5, 0.4))
+    domain2d = Domain2D((-0.25, 0.0),    (0.5, 0.4))
+    ICP2d.add_domain(domain2d)
     
     # Add metal wall to all boundaries
     # In Metal, vector potential A = 0
