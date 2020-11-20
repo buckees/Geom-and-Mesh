@@ -35,6 +35,15 @@ class Geom(object):
         self.mater_set = set()
         self.mater_dict = dict()
     
+    def __str__(self):
+        """Print out info."""
+        res = f'This is a {self.dim}D geometry called {self.name},'
+        if self.is_cyl:
+            res += '\nwith Cylindrical symmetry'
+        else:
+            res += '\nwith Cartesian symmetry'
+        return res
+    
     def add_domain(self, domain):
         """
         Add domain to the geometry.
@@ -78,66 +87,6 @@ class Geom(object):
                 mater = shape.mater
         return mater
 
-
-
-class RctMod2D(Geom):
-    """Define the geometry for 2D Reactor Model."""
-    
-    def plot(self, figsize=(8, 8), dpi=300, ihoriz=1):
-        """
-        Plot the geometry.
-        
-        figsize: unit in inch, (2, ) tuple, determine the fig/canvas size
-        dpi: dimless, int, Dots Per Inch
-        """ 
-        if ihoriz:
-            fig, axes = plt.subplots(1, 2, figsize=figsize, dpi=dpi,
-                                     constrained_layout=True)
-        else:
-            fig, axes = plt.subplots(2, 1, figsize=figsize, dpi=dpi,
-                                     constrained_layout=True)
-        
-        ax = axes[0]
-        _domain = self.sequence[0]
-        temp_col = color_dict[self.mater_dict[_domain.mater]]
-        ax.add_patch(
-            patch.Rectangle(_domain.bl, _domain.width, _domain.height,
-                            facecolor='w'))
-        for shape in self.sequence[1:]:
-            
-                
-            if shape.type == 'Rectangle':
-                
-                temp_col = color_dict[self.mater_dict[shape.mater]]
-                ax.add_patch(
-                    patch.Rectangle(shape.bl, shape.width, shape.height,
-                                    facecolor=temp_col))
-                
-        ax = axes[1]
-        ax.add_patch(
-            patch.Rectangle(_domain.bl, _domain.width, _domain.height,
-                            facecolor='purple'))
-        for shape in self.sequence[1:]:
-            if shape.type == 'Rectangle':
-                ax.add_patch(
-                    patch.Rectangle(shape.bl, shape.width, shape.height,
-                                    facecolor='w', edgecolor='w'))
-        for ax in axes:
-            ax.set_xlim(_domain.bl[0], _domain.ur[0])
-            ax.set_ylim(_domain.bl[1], _domain.ur[1])
-        fig.savefig(self.name, dpi=dpi)
-        plt.close()
-
-class FeatMod2D(RctMod2D):
-    """Define the geometry for 2D Feature Model."""
-    
-    pass
-
-
-class RctMod1D(Geom):
-    """Define the geometry for 1D Reactor Model."""
-    
-    pass
 
 class Shape():
     """Basic geometry element."""
@@ -261,6 +210,105 @@ class Interval(Shape):
         """
         return self.lr[0] <= posn <= self.lr[1]
 
+
+class RctMod2D(Geom):
+    """Define the geometry for 2D Reactor Model."""
+    
+    def __str__(self):
+        """Print out info."""
+        res = '\nThis is a geometry for 2D Reactor Model'
+        res += f'\nwith domain {self.sequence[0].width} m'
+        res += f' x {self.sequence[0].height} m'
+        return super().__str__() + res
+    
+    def plot(self, figsize=(8, 8), dpi=300, ihoriz=1):
+        """
+        Plot the geometry.
+        
+        figsize: unit in inch, (2, ) tuple, determine the fig/canvas size
+        dpi: dimless, int, Dots Per Inch
+        """ 
+        if ihoriz:
+            fig, axes = plt.subplots(1, 2, figsize=figsize, dpi=dpi,
+                                     constrained_layout=True)
+        else:
+            fig, axes = plt.subplots(2, 1, figsize=figsize, dpi=dpi,
+                                     constrained_layout=True)
+        
+        ax = axes[0]
+        _domain = self.sequence[0]
+        temp_col = color_dict[self.mater_dict[_domain.mater]]
+        ax.add_patch(
+            patch.Rectangle(_domain.bl, _domain.width, _domain.height,
+                            facecolor='w'))
+        for shape in self.sequence[1:]:
+            
+                
+            if shape.type == 'Rectangle':
+                
+                temp_col = color_dict[self.mater_dict[shape.mater]]
+                ax.add_patch(
+                    patch.Rectangle(shape.bl, shape.width, shape.height,
+                                    facecolor=temp_col))
+                
+        ax = axes[1]
+        ax.add_patch(
+            patch.Rectangle(_domain.bl, _domain.width, _domain.height,
+                            facecolor='purple'))
+        for shape in self.sequence[1:]:
+            if shape.type == 'Rectangle':
+                ax.add_patch(
+                    patch.Rectangle(shape.bl, shape.width, shape.height,
+                                    facecolor='w', edgecolor='w'))
+        for ax in axes:
+            ax.set_xlim(_domain.bl[0], _domain.ur[0])
+            ax.set_ylim(_domain.bl[1], _domain.ur[1])
+        fig.savefig(self.name, dpi=dpi)
+        plt.close()
+
+class FeatMod2D(RctMod2D):
+    """Define the geometry for 2D Feature Model."""
+    
+    pass
+
+
+class RctMod1D(Geom):
+    """Define the geometry for 1D Reactor Model."""
+    
+    def __init__(self, name='Base', is_cyl=False):
+        """Reinit attributes only for self.dim=1."""
+        super().__init__()
+        self.dim = 1
+    
+    def __str__(self):
+        """Print out info."""
+        res = '\nThis is a geometry for 1D Reactor Model'
+        res += f'\nwith domain {self.sequence[0].domain} m'
+        return super().__str__() + res
+    
+    def plot(self, figsize=(8, 8), dpi=300):
+        """
+        Plot the 1D geometry.
+        
+        figsize: unit in inch, (2, ) tuple, determine the fig/canvas size
+        dpi: dimless, int, Dots Per Inch
+        """
+        fig, ax = plt.subplots(1, 1, figsize=figsize, dpi=dpi,
+                               constrained_layout=True)
+        _domain = self.sequence[0]
+        ax.plot(_domain.domain, (0.0, 0.0), 'o-',
+                linewidth=5, color='purple', markersize=16)
+        for segment in self.sequence[1:]:
+            temp_col = color_dict[self.mater_dict[segment.mater]]
+            ax.plot(segment.lr, (0.0, 0.0), 'o-',
+                linewidth=5, color=temp_col, markersize=16)
+        # for ax in axes:
+        #     ax.set_xlim(self.bl[0], self.bl[0] + self.domain[0])
+        #     ax.set_ylim(self.bl[1], self.bl[1] + self.domain[1])
+        fig.savefig(self.name, dpi=dpi)
+        plt.close()
+
+
 if __name__ == '__main__':
     # build the geometry
     ICP2d = RctMod2D(name='ICP2D', is_cyl=False)
@@ -310,8 +358,20 @@ if __name__ == '__main__':
     # use 0.081 instead of 0.08 for mesh asymmetry
     coil6 = Rectangle('Coil', (0.06, 0.34), (0.081, 0.36))
     ICP2d.add_shape(coil6)
-    
-    
-    
+     
     ICP2d.plot(figsize=(10, 4), ihoriz=1)
     print(ICP2d)
+    
+    
+    """Test 1D Geometry."""
+    ICP1d = RctMod1D(name='ICP1D', is_cyl=False)
+    domain1d = Domain1D(domain=(-10.0, 10.0))
+    ICP1d.add_domain(domain1d)
+    seg1 = Interval('M', (-10.0, -8.0))
+    ICP1d.add_shape(seg1)
+    seg2 = Interval('M', (5.0, 10.0))
+    ICP1d.add_shape(seg2)
+    seg3 = Interval('D', (-6.0, 0.0))
+    ICP1d.add_shape(seg3)
+    ICP1d.plot()
+    print(ICP1d)
