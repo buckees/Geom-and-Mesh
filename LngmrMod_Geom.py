@@ -277,7 +277,7 @@ class RctMod1D(Geom):
     
     def __init__(self, name='Base', is_cyl=False):
         """Reinit attributes only for self.dim=1."""
-        super().__init__()
+        super().__init__(name=name, is_cyl=is_cyl)
         self.dim = 1
     
     def __str__(self):
@@ -310,6 +310,11 @@ class RctMod1D(Geom):
 
 
 if __name__ == '__main__':
+    import os
+    import glob
+    for i in glob.glob("*.png"):
+        os.remove(i)
+
     # build the geometry
     ICP2d = RctMod2D(name='ICP2D', is_cyl=False)
     #               (left, bottom), (width, height)
