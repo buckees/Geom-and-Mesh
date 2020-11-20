@@ -12,7 +12,7 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as patch
 import numpy as np
 
-class Base(object):
+class Geom(object):
     """Define all shared basic properties."""
     
     def __init__(self, name='Base', is_cyl=False):
@@ -80,7 +80,7 @@ class Base(object):
 
 
 
-class RctMod2D(Base):
+class RctMod2D(Geom):
     """Define the geometry for 2D Reactor Model."""
     
     def plot(self, figsize=(8, 8), dpi=300, ihoriz=1):
@@ -134,7 +134,7 @@ class FeatMod2D(RctMod2D):
     pass
 
 
-class RctMod1D(Base):
+class RctMod1D(Geom):
     """Define the geometry for 1D Reactor Model."""
     
     pass
@@ -143,7 +143,7 @@ class Shape():
     """Basic geometry element."""
     
     def __init__(self, label, mater, dim):
-        """       
+        """
         Define the common attributes.
         
         label: str, var, label of shape
