@@ -35,20 +35,15 @@ class Base(object):
         self.mater_set = set()
         self.mater_dict = dict()
     
-    def create_domain(self, bl=(0.0, 0.0), domain=(1.0, 1.0),
-                      default_mater='Plasma'):
+    def add_domain(self, domain):
         """
-        Create the Domain.
+        Add domain to the geometry.
         
-        bl: unit in m, (2, ) tuple
-        domain: unit in m, (2, ) tuple, width and height
-        mater: str, var, Domain mater is fixed to 'Plasma'
+        domain: class Shape
         """
-        self.bl = np.asarray(bl)
-        self.domain = np.asarray(domain)
-        self.mater = default_mater
-        self.mater_set.add(self.mater)
-        self.mater_dict.update({self.mater:0})
+        self.sequence.append(domain)
+        self.mater_set.add(domain.mater)
+        self.mater_dict.update({domain.mater:0})
         self.has_domain = True
 
     def add_shape(self, shape):
@@ -83,6 +78,11 @@ class Base(object):
                 mater = shape.mater
         return mater
 
+
+
+class RctMod2D(Base):
+    """Define the geometry for 2D Reactor Model."""
+    
     def plot(self, figsize=(8, 8), dpi=300, ihoriz=1):
         """
         Plot the geometry.
@@ -120,23 +120,90 @@ class Base(object):
         fig.savefig(self.name, dpi=dpi)
         plt.close()
 
-class FeatMod2D(Base):
+class FeatMod2D(RctMod2D):
     """Define the geometry for 2D Feature Model."""
     
     pass
 
-class RctMod2D(Base):
-    """Define the geometry for 2D Reactor Model."""
-    
-    pass
 
 class RctMod1D(Base):
     """Define the geometry for 1D Reactor Model."""
     
     pass
 
+class Shape():
+    """Basic geometry element."""
+    
+    def __init__(self, label, mater, dim):
+        """       
+        Define the common attributes.
+        
+        label: str, var, label of shape
+        mater: str, var, material of shape
+        dim: 1 or 2, dimension of shape
+        """
+        self.label = label
+        self.mater = mater
+        self.dim = dim
 
-class Rectangle():
+class Domain2d(Shape):
+    """Define 2D domain."""
+    
+    def __init__(self, bl=(0.0, 0.0), domain=(1.0, 1.0)):
+        """
+        Define the init attributes.
+        
+        label: 'A', label of shape
+        mater: 'Plasma', material of shape
+        dim: 2, dimension of shape
+        bl: float, (2, ) tuple, bottom left of domain
+        ur: float, (2, ) tuple, top right of domain
+        domain: float, (2, ) tuple, width and height of domain
+        type: str, var, type of domain
+        """
+        super().__init__(label='A', mater='Plasma', dim=2)
+        self.bl = np.asarray(bl)
+        self.domain = np.asarray(domain)
+        self.ur = self.bl + self.domain
+        self.width, self.height = self.domain
+        self.type = 'Domain'
+
+    def __contains__(self, posn):
+        """
+        Determind if a position is inside the Domain.
+        
+        posn: unit in m, (2, ) array, position as input
+        boundaries are consindered as "Inside"
+        """
+        return all(self.bl <= posn) and all(posn <= self.ur)
+
+class Domain1d(Shape):
+    """Define 1D domain."""
+    
+    def __init__(self, domain=(0.0, 1.0)):
+        """
+        Define the init attributes.
+        
+        label: 'A', label of shape
+        mater: 'Plasma', material of shape
+        dim: 1, dimension of shape
+        domain: float, (2, ) tuple, left and right of domain
+        type: str, var, type of domain
+        """
+        super().__init__(label='A', mater='Plasma', dim=1)
+        self.domain = np.asarray(domain)
+        self.type = 'Domain'
+
+    def __contains__(self, posn):
+        """
+        Determind if a position is inside the Domain.
+        
+        posn: unit in m, (2, ) array, position as input
+        boundaries are consindered as "Inside"
+        """
+        return self.domain[0] <= posn <= self.domain[1]
+
+class Rectangle(Shape):
     """Rectangle is a 2D basic shape."""
     
     def __init__(self, mater, bottom_left, up_right):
@@ -147,19 +214,12 @@ class Rectangle():
         up_right: unit in m, (2, ) tuple, point position
         type: str, var, type of Shape
         """
-        self.mater = mater
+        super().__init__(label='A', mater, dim=2)
         self.bl = np.asarray(bottom_left)
         self.ur = np.asarray(up_right)
         self.width = self.ur[0] - self.bl[0]
         self.height = self.ur[1] - self.bl[1]
         self.type = 'Rectangle'
-
-    def __str__(self):
-        """Print Rectangle info."""
-        res = 'Rectangle:'
-        res += f'\nbottom left = {self.bl} m'
-        res += f'\nup right = {self.ur} m'
-        return res
 
     def __contains__(self, posn):
         """
@@ -169,6 +229,29 @@ class Rectangle():
         boundaries are not consindered as "Inside"
         """
         return all(self.bl <= posn) and all(posn <= self.ur)
+
+class Interval(Shape):
+    """Rectangle is a 1D basic shape."""
+    
+    def __init__(self, mater, lr):
+        """
+        Init the Interval.
+        
+        lr: unit in m, (2, ) tuple, defines the domain
+        mater: str, var, label of Interval.
+        """
+        super().__init__(label='A', mater, dim=1)
+        self.lr = np.asarray(lr)
+        self.length = self.lr[1] - self.lr[0]
+
+    def __contains__(self, posn):
+        """
+        Determind if a position is inside the Interval.
+        
+        posn: unit in m, (2, ) array, position as input
+        boundaries are consindered as "Inside"
+        """
+        return self.lr[0] <= posn <= self.lr[1]
 
 if __name__ == '__main__':
     # build the geometry
