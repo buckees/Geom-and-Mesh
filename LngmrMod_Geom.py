@@ -21,13 +21,17 @@ class Base(object):
         
         name: str, var, name of geom.
         dim: int, var, dim of the geometry
-        is_cyl: Bool, var, whether cylindrical symmetry
+        is_cyl: bool, var, whether cylindrical symmetry
         sequency: list of shapes
+        idomain: bool, var, whether domain is created
+        mater_set: str, set of str, set of materials
         """
         self.name = name
         self.dim = 2
         self.is_cyl = is_cyl
         self.sequence = list()
+        self.has_domain = False
+        self.mater_set = set()
     
     def create_domain(self, bl=(0.0, 0.0), domain=(1.0, 1.0)):
         """
@@ -40,6 +44,36 @@ class Base(object):
         self.bl = np.asarray(bl)
         self.domain = np.asarray(domain)
         self.mater = 'Plasma'
+        self.mater_set.add(self.mater)
+        self.has_domain = True
+
+    def add_shape(self, shape):
+        """
+        Add shape to the geometry.
+        
+        shape: class, Rectangle()
+        """
+        if self.has_domain:
+            self.sequence.append(shape)
+            self.mater_set.add(shape.mater)
+        else:
+            res = 'Error: Domian is not created yet.'
+            res += '\nRun self.create_domain() before self.add_shape()'
+            return res
+
+    def get_mater(self, posn):
+        """
+        Return the mater of a position.
+        
+        posn: unit in m, var or (2, ) array, position as input
+        mater: str, var, material name
+        """
+        mater = 'Plasma'
+        # To add domain check here
+        for shape in self.sequence:
+            if posn in shape:
+                mater = shape.mater
+        return mater
 
 class FeatMod2D(Base):
     """Define the geometry for 2D Feature Model."""
@@ -57,42 +91,18 @@ class RctMod1D(Base):
     pass
 
 
-class Domain(Shape):
-    """Define the Domain."""
-    
-    def __init__(self, bl=(0.0, 0.0), domain=(1.0, 1.0)):
-        """
-        Init the Domain.
-        
-        bl: unit in m, (2, ) tuple
-        domain: unit in m, (2, ) tuple, width and height
-        label: Domain label is fixed to 'Plasma'
-        """
-        self.bl = np.asarray(bl)
-        self.domain = np.asarray(domain)
-        super().__init__(label='Plasma')
-
-    def __str__(self):
-        """Print Domain info."""
-        res = 'Domain:'
-        res += f'\nname = {self.name}'
-        res += f'\nlabel = {self.label}'
-        res += f'\nbottom left = {self.bl} m'
-        res += f'\ndomain = {self.domain} m'
-        return res
-
-class Rectangle(Shape):
+class Rectangle():
     """Rectangle is a 2D basic shape."""
     
-    def __init__(self, label, bottom_left, up_right):
+    def __init__(self, mater, bottom_left, up_right):
         """
         Init the Rectangle.
         
-        bottom_left: unit in m, (2, ) tuple
-        up_right: unit in m, (2, ) tuple
+        bottom_left: unit in m, (2, ) tuple, point position
+        up_right: unit in m, (2, ) tuple, point position
         type: str, var, type of Shape
         """
-        super().__init__(label)
+        self.mater = mater
         self.bl = np.asarray(bottom_left)
         self.ur = np.asarray(up_right)
         self.width = self.ur[0] - self.bl[0]
