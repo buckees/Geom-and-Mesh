@@ -11,30 +11,31 @@ import matplotlib.pyplot as plt
 class Mesh():
     """Define all shared basic properties."""
 
-    def __init__(self, geom):
+    def __init__(self, import_geom):
         """Import geometry as init."""
-        self.geom = geom
+        self.geom = import_geom
+        self.name = import_geom.name + '_Mesh'
             
     def __str__(self):
         """Print out info."""
         res = f'This is a {self.geom.dim}D mesh called {self.geom.name},'
         return res
     
-    
         
 class Mesh2d(Mesh):
     """Define 2D mesh."""
 
-    def gen_mesh(self, ngrid=(11, 11)):
+    def gen_mesh(self, ngrid=(10, 10)):
         """Generate mesh according to the imported geometry."""
-        self.width, self.height = self.geom.domain
         self.ngrid = np.asarray(ngrid)
         self.nx, self.nz = self.ngrid
-        self.res = np.divide(self.geom.domain, self.ngrid - 1)
-        self.delx, self.delz = self.res
-        tempx = np.linspace(self.geom.bl[0], self.geom.bl[0] + self.width, 
+        self.res = np.divide(self.geom.domain.domain, self.ngrid)
+        self.dx, self.dz = self.res
+        tempx = np.linspace(self.geom.domain.bl[0] + 0.5*self.dx, 
+                            self.geom.domain.tr[0] - 0.5*self.dx, 
                             self.nx)
-        tempz = np.linspace(self.geom.bl[1], self.geom.bl[1] + self.height, 
+        tempz = np.linspace(self.geom.domain.bl[1] + 0.5*self.dz, 
+                            self.geom.domain.tr[1] - 0.5*self.dz, 
                             self.nz)
         self.x, self.z = np.meshgrid(tempx, tempz)
         self.mat = np.zeros_like(self.x)
@@ -60,19 +61,20 @@ class Mesh2d(Mesh):
 
     def _assign_mat(self):
         """Assign materials to nodes."""
-        for _idx, _x in np.ndenumerate(self.x):
-            _z = self.z[_idx]
-            _posn = np.array([_x, _z])
-            _label, self.mat[_idx] = self.geom.get_label(_posn)
+        for idx, x in np.ndenumerate(self.x):
+            z = self.z[idx]
+            posn = np.array([x, z])
+            mater = self.geom.get_mater(posn)
+            self.mat[idx] = self.geom.mater_dict[mater]
     
     def _calc_plasma_area(self):
         """Calc the total area of plasma region."""
         self.area = 0
-        for _idx, _mat in np.ndenumerate(self.mat):
-            if not _mat:
-                self.area += self.delx * self.delz
+        for idx, mat in np.ndenumerate(self.mat):
+            if not mat:
+                self.area += self.dx * self.dz
 
-    def plot(self, figsize=(8, 8), dpi=600, fname='Mesh.png',  ihoriz=1):
+    def plot(self, figsize=(8, 8), dpi=600, ihoriz=1):
         """Plot mesh."""
         colMap = plt.get_cmap('Set1')
         
@@ -86,7 +88,7 @@ class Mesh2d(Mesh):
         ax.scatter(self.x, self.z, c=self.mat, s=10, cmap=colMap)
         ax = axes[1]
         ax.scatter(self.x, self.z, c=self.bndy, s=10, cmap=colMap)
-        fig.savefig(fname, dpi=dpi)
+        fig.savefig(self.name, dpi=dpi)
         plt.close()
 
     def cnt_diff(self, f):
@@ -134,27 +136,130 @@ class Mesh2d(Mesh):
         d2f = d2fx + d2fz
         return d2f
 
+class Mesh1d(Mesh):
+    """Define 1D Mesh."""
+
+    def gen_mesh(self, nx=10):
+        """Generate mesh according to the imported geometry."""
+        self.nx = nx
+        self.x, self.dx = np.linspace(self.geom.domain.domain[0], 
+                                      self.geom.domain.domain[1], 
+                                      self.nx, retstep=True)
+        self.mat = np.zeros_like(self.x)
+        self._find_bndy()
+        self._assign_mat()
+        self._calc_plasma_area()
+
+    def _find_bndy(self):
+        """Add boundaries."""
+        self.bndy = np.zeros_like(self.x)
+        self.bndy[0], self.bndy[-1] = 1, 1        
+
+    def _assign_mat(self):
+        """Assign materials to nodes."""
+        for idx, x in np.ndenumerate(self.x):
+            mater = self.geom.get_mater(x)
+            self.mat[idx] = self.geom.mater_dict[mater]
+    
+    def _calc_plasma_area(self):
+        """Calc the total area of plasma region."""
+        self.area = 0
+        for mat in self.mat:
+            if not mat:
+                self.area += self.dx
+
+    def plot(self, figsize=(8, 8), dpi=600, ihoriz=1):
+        """Plot mesh."""
+        colMap = plt.get_cmap('Set1')
+        
+        fig, ax = plt.subplots(1, 1, figsize=figsize, dpi=dpi,
+                                 constrained_layout=True)
+
+        ax.scatter(self.x, np.zeros_like(self.x), 
+                   c=self.mat, s=10, cmap=colMap)
+        fig.savefig(self.name, dpi=dpi)
+        plt.close()
+
 if __name__ == '__main__':
-    """Test Mesh."""
-    from RctMod2d_Geom import Geom2d, Domain, Rectangle
+    import os
+    import glob
+    for i in glob.glob("*.png"):
+        os.remove(i)
+
+    from LngmrMod_Geom import (RctMod2D, Domain2D, Rectangle,
+                               RctMod1D, Domain1D, Interval)
+    
     # build the geometry
-    geom2d = Geom2d(name='Geom2D_Test', is_cyl=False)
-    domain = Domain((-1.0, 0.0), (2.0, 4.0))
-    geom2d.add_domain(domain)
-    top = Rectangle('Metal', (-1.0, 3.5), (1.0, 4.0))
-    geom2d.add_shape(top)
-    bott = Rectangle('Metal', (-0.8, 0.0), (0.8, 0.2))
-    geom2d.add_shape(bott)
-    left = Rectangle('Metal', (-1.0, 0.0), (-0.9, 4.0))
-    geom2d.add_shape(left)
-    right = Rectangle('Metal', (0.9, 0.0), (1.0, 4.0))
-    geom2d.add_shape(right)
-    quartz = Rectangle('Quartz', (-0.9, 3.3), (0.9, 3.5))
-    geom2d.add_shape(quartz)
-    geom2d.plot(fname='geom2d.png')
-    print(geom2d)
+    ICP2d = RctMod2D(name='ICP2D', is_cyl=False)
+    #               (left, bottom), (width, height)
+    domain2d = Domain2D((-0.25, 0.0),    (0.5, 0.4))
+    ICP2d.add_domain(domain2d)
+    
+    # Add metal wall to all boundaries
+    # In Metal, vector potential A = 0
+    #                        (left, bottom), (right, top)
+    top = Rectangle('Metal', (-0.25, 0.38), (0.25, 0.4))
+    ICP2d.add_shape(top)
+    bott = Rectangle('Metal', (-0.25, 0.0), (0.25, 0.02))
+    ICP2d.add_shape(bott)
+    # use -0.231 instead of -0.23 for mesh asymmetry
+    left = Rectangle('Metal', (-0.25, 0.0), (-0.231, 0.4)) 
+    ICP2d.add_shape(left)
+    right = Rectangle('Metal', (0.23, 0.0), (0.25, 4.0))
+    ICP2d.add_shape(right)
+    ped = Rectangle('Metal', (-0.20, 0.0), (0.20, 0.1))
+    ICP2d.add_shape(ped)
+    
+    
+    # Add quartz to separate coil area and plasma area
+    # Quartz conductivity = 1e-5 S/m
+    quartz = Rectangle('Quartz', (-0.23, 0.3), (0.23, 0.32))
+    ICP2d.add_shape(quartz)
+    
+    # Add air to occupy the top coil area to make it non-plasma
+    # Air concudctivity = 0.0 S/m
+    air = Rectangle('Air', (-0.23, 0.32), (0.23, 0.38))
+    ICP2d.add_shape(air)
+    
+    # Add coil within air and overwirte air
+    # coil 1, 2, 3: J = -J0*exp(iwt)
+    # coil 4, 5, 6: J = +J0*exp(iwt)
+    coil1 = Rectangle('Coil', (-0.20, 0.34), (-0.18, 0.36))
+    ICP2d.add_shape(coil1)
+    coil2 = Rectangle('Coil', (-0.14, 0.34), (-0.12, 0.36))
+    ICP2d.add_shape(coil2)
+    coil3 = Rectangle('Coil', (-0.08, 0.34), (-0.06, 0.36))
+    ICP2d.add_shape(coil3)
+    coil4 = Rectangle('Coil', (0.18, 0.34), (0.20, 0.36))
+    ICP2d.add_shape(coil4)
+    coil5 = Rectangle('Coil', (0.12, 0.34), (0.14, 0.36))
+    ICP2d.add_shape(coil5)
+    # use 0.081 instead of 0.08 for mesh asymmetry
+    coil6 = Rectangle('Coil', (0.06, 0.34), (0.081, 0.36))
+    ICP2d.add_shape(coil6)
+     
+    ICP2d.plot(figsize=(10, 4), ihoriz=1)
+    print(ICP2d)
+    
     # generate mesh to imported geometry
-    mesh2d = Mesh2d('Mesh2D_Test')
-    mesh2d.import_geom(geom2d)
-    mesh2d.generate_mesh(ngrid=(21, 41))
-    mesh2d.plot()
+    mesh2d = Mesh2d(import_geom=ICP2d)
+    mesh2d.gen_mesh(ngrid=(50, 40))
+    mesh2d.plot(figsize=(10, 4), ihoriz=1)
+
+    """Test 1D Geometry."""
+    ICP1d = RctMod1D(name='ICP1D', is_cyl=False)
+    domain1d = Domain1D(domain=(-10.0, 10.0))
+    ICP1d.add_domain(domain1d)
+    seg1 = Interval('M', (-10.0, -8.0))
+    ICP1d.add_shape(seg1)
+    seg2 = Interval('M', (5.0, 10.0))
+    ICP1d.add_shape(seg2)
+    seg3 = Interval('D', (-6.0, 0.0))
+    ICP1d.add_shape(seg3)
+    ICP1d.plot()
+    print(ICP1d)
+    
+    # generate mesh to imported geometry
+    mesh1d = Mesh1d(import_geom=ICP1d)
+    mesh1d.gen_mesh(nx=100)
+    mesh1d.plot()
