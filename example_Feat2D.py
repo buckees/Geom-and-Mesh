@@ -32,4 +32,4 @@ print(Feat2d)
 # generate mesh to imported geometry
 mesh2d = Mesh2D(import_geom=Feat2d)
 mesh2d.gen_mesh(ngrid=(50, 125))
-mesh2d.plot(figsize=(4, 4), ihoriz=1)
+mesh2d.plot(figsize=(4, 4), ihoriz=1, s_size=1)
