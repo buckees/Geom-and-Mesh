@@ -22,7 +22,7 @@ class Mesh():
         return res
     
         
-class Mesh2d(Mesh):
+class Mesh2D(Mesh):
     """Define 2D mesh."""
 
     def gen_mesh(self, ngrid=(10, 10)):
@@ -136,7 +136,7 @@ class Mesh2d(Mesh):
         d2f = d2fx + d2fz
         return d2f
 
-class Mesh1d(Mesh):
+class Mesh1D(Mesh):
     """Define 1D Mesh."""
 
     def gen_mesh(self, nx=10):
